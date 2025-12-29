@@ -62,7 +62,7 @@
 #ifndef ALGORITHM_H_
 #define ALGORITHM_H_
 
-#include <Arduino.h>
+#include <stdint.h>
 
 #define FreqS 25    //sampling frequency
 #define BUFFER_SIZE (FreqS * 4) 
@@ -83,7 +83,7 @@ const uint8_t uch_spo2_table[184]={ 95, 95, 95, 96, 96, 96, 97, 97, 97, 97, 97, 
 static  int32_t an_x[ BUFFER_SIZE]; //ir
 static  int32_t an_y[ BUFFER_SIZE]; //red
 
-
+/*make sure which is it!*/
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
 //Arduino Uno doesn't have enough SRAM to store 100 samples of IR led data and red led data in 32-bit format
 //To solve this problem, 16-bit MSB of the sampled data will be truncated.  Samples become 16-bit data.

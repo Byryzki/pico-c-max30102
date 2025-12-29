@@ -57,7 +57,6 @@
 *******************************************************************************
 */
 
-#include "Arduino.h"
 #include "algorithm.h"
 
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)

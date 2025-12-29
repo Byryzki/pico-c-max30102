@@ -10,7 +10,8 @@
  * @date  2020-05-30
  * @https://github.com/DFRobot/DFRobot_MAX30102
  */
-#include <DFRobot_MAX30102.h>
+
+ #include "DFRobot_MAX30102.h"
 
 DFRobot_MAX30102::DFRobot_MAX30102(void)
 {

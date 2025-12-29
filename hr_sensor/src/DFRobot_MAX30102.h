@@ -13,8 +13,6 @@
 #ifndef _DFROBOT_MAX30102_H
 #define _DFROBOT_MAX30102_H
 
-#include <Arduino.h>
-#include <Wire.h>
 #include <SPO2/algorithm.h>
 #include <PBA/heartRate.h>
 
