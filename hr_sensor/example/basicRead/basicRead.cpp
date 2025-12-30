@@ -11,6 +11,8 @@
  */
 
 #include "DFRobot_MAX30102.h"
+#include <iostream>
+#include "pico/stdlib.h"
 
 DFRobot_MAX30102 particleSensor;
 
@@ -24,21 +26,17 @@ pulseWidth:    SAMPLERATE_50 SAMPLERATE_100 SAMPLERATE_200 SAMPLERATE_400
                SAMPLERATE_800 SAMPLERATE_1000 SAMPLERATE_1600 SAMPLERATE_3200
 adcRange:      ADCRANGE_2048 ADCRANGE_4096 ADCRANGE_8192 ADCRANGE_16384
 */
-void setup()
-{
-  //Init serial 
-  Serial.begin(115200);
-  /*!
-   *@brief Init sensor 
-   *@param pWire IIC bus pointer object and construction device, can both pass or not pass parameters (Wire in default)
-   *@param i2cAddr Chip IIC address (0x57 in default)
-   *@return true or false
-   */
-  while (!particleSensor.begin()) {
-    Serial.println("MAX30102 was not found");
-    delay(1000);
-  }
 
+int main()
+{
+  stdio_init_all;
+
+  particleSensor.init();
+  while (!particleSensor.begin()) {
+    printf("MAX30102 was not found");
+    sleep_ms(1000);
+  }
+  
   /*!
    *@brief Use macro definition to configure sensor
    *@param ledBrightness LED brightness, default value: 0x1F（6.4mA), Range: 0~255（0=Off, 255=50mA）
@@ -51,23 +49,12 @@ void setup()
   particleSensor.sensorConfiguration(/*ledBrightness=*/0x1F, /*sampleAverage=*/SAMPLEAVG_4, \
                                   /*ledMode=*/MODE_MULTILED, /*sampleRate=*/SAMPLERATE_400, \
                                   /*pulseWidth=*/PULSEWIDTH_411, /*adcRange=*/ADCRANGE_4096);
-}
 
-void loop()
-{
-  //Print result
-  Serial.print("R=");
-  /*!
-   *@brief Get red value
-   *@return Red light reading 
-   */
-  Serial.print(particleSensor.getRed());
-  Serial.print(" IR=");
-  /*!
-   *@brief Get IR value 
-   *@return IR reading 
-   */
-  Serial.print(particleSensor.getIR());
-  Serial.println();
-  delay(100);
+  while(true)
+  {
+    printf("R= %d IR= %d\n", particleSensor.getRed(), particleSensor.getIR());
+    sleep_ms(500);
+  }
+  
+  return 0;
 }
