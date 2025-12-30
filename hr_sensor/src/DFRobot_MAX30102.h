@@ -15,6 +15,7 @@
 
 #include <SPO2/algorithm.h>
 #include <PBA/heartRate.h>
+#include <cstddef>
 
 //Open this macro to see the detailed running process of the program
 // #define ENABLE_DBG

@@ -16,6 +16,7 @@
  #include <hardware/i2c.h>
  #include "pico/stdlib.h"
  #include <cstring>
+ #include <cstddef>
  #include <iostream>
 
  #define I2C_PORT i2c0
@@ -470,43 +471,6 @@ void DFRobot_MAX30102::heartrateAndOxygenSaturation(int32_t* SPO2,int8_t* SPO2Va
       /**pn_spo2=*/SPO2, /**pch_spo2_valid=*/SPO2Valid, /**pn_heart_rate=*/heartRate, /**pch_hr_valid=*/heartRateValid);
 }
 
-void DFRobot_MAX30102::writeReg(uint8_t reg, const void* pBuf, uint8_t size)
-{
-  if(pBuf == NULL) {
-    DBG("pBuf ERROR!! : null pointer");
-  }
-  uint8_t * _pBuf = (uint8_t *)pBuf;
-  beginTransmission(_i2cAddr);
-  write(&reg, 1);
-
-  for(uint16_t i = 0; i < size; i++) {
-    write(_pBuf[i]);
-  }
-  endTransmission();
-}
-
-uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
-{
-  if(pBuf == NULL) {
-    DBG("pBuf ERROR!! : null pointer");
-  }
-
-  uint8_t * _pBuf = (uint8_t *)pBuf;
-  beginTransmission(i2cAddr); // Just for the internal state machine implementation
-  write(&reg, 1);
-
-  if( endTransmission() != 0) {
-    return 0;
-  }
-  
-  requestFrom(i2cAddr,  size);
-  for(uint16_t i = 0; i < size; i++) {
-    _pBuf[i] = read();
-  }
-  return size;
-  
-}
-
 void beginTransmission(uint8_t i2cAddr)
 {
   // indicate that we are transmitting
@@ -521,28 +485,6 @@ void beginTransmission(uint8_t i2cAddr)
 void beginTransmission(int address)
 {
   beginTransmission((uint8_t)address);
-}
-
-size_t write(const uint8_t *data, size_t quantity)
-{
-  size_t tmp_quantity = quantity;
-  
-  if(transmitting)
-  {
-  // in master transmitter mode
-    for(size_t i = 0; i < quantity; ++i)
-    {
-      write(data[i]);
-    }
-  }
-  else
-  {
-  // in slave send mode
-    // reply to master
-    twi_transmit(data, quantity);
-  
-  }
-  return quantity;
 }
 
 size_t write(uint8_t data)  // writing once
@@ -566,6 +508,28 @@ size_t write(uint8_t data)  // writing once
     
   }
   return 1;
+}
+
+size_t write(const uint8_t *data, size_t quantity)
+{
+  size_t tmp_quantity = quantity;
+  
+  if(transmitting)
+  {
+  // in master transmitter mode
+    for(size_t i = 0; i < quantity; ++i)
+    {
+      write(data[i]);
+    }
+  }
+  else
+  {
+  // in slave send mode
+    // reply to master
+    twi_transmit(data, quantity);
+  
+  }
+  return quantity;
 }
 
 uint8_t twi_transmit(const uint8_t* data, uint8_t length)
@@ -645,4 +609,41 @@ int read(void)
   }
 
   return value;
+}
+
+void DFRobot_MAX30102::writeReg(uint8_t reg, const void* pBuf, uint8_t size)
+{
+  if(pBuf == NULL) {
+    DBG("pBuf ERROR!! : null pointer");
+  }
+  uint8_t * _pBuf = (uint8_t *)pBuf;
+  beginTransmission(_i2cAddr);
+  write(&reg, 1);
+
+  for(uint16_t i = 0; i < size; i++) {
+    write(_pBuf[i]);
+  }
+  endTransmission();
+}
+
+uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
+{
+  if(pBuf == NULL) {
+    DBG("pBuf ERROR!! : null pointer");
+  }
+
+  uint8_t * _pBuf = (uint8_t *)pBuf;
+  beginTransmission(i2cAddr); // Just for the internal state machine implementation
+  write(&reg, 1);
+
+  if( endTransmission() != 0) {
+    return 0;
+  }
+  
+  requestFrom(i2cAddr,  size);
+  for(uint16_t i = 0; i < size; i++) {
+    _pBuf[i] = read();
+  }
+  return size;
+  
 }
