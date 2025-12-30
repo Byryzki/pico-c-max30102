@@ -12,6 +12,10 @@
  */
 
  #include "DFRobot_MAX30102.h"
+ #include <time.h>
+ #include <hardware/i2c.h>
+ #include "pico/stdlib.h"
+ #include <cstring>
 
 DFRobot_MAX30102::DFRobot_MAX30102(void)
 {
@@ -97,11 +101,12 @@ void DFRobot_MAX30102::softReset(void)
   readReg(MAX30102_MODECONFIG, &modeReg, 1);
   modeReg.reset = 1;
   writeReg(MAX30102_MODECONFIG, &modeReg, 1);
-  uint32_t startTime = millis();
-  while (millis() - startTime < 100) {
+
+  uint32_t startTime = get_absolute_time();
+  while (absolute_time_diff_us(startTime, get_absolute_time()) < 100) {
     readReg(MAX30102_MODECONFIG, &modeReg, 1);
     if (modeReg.reset == 0) break; 
-    delay(1);
+    sleep_ms(1);
   }
 }
 
@@ -256,11 +261,11 @@ float DFRobot_MAX30102::readTemperatureC()
   uint8_t byteTemp = 0x01;
   writeReg(MAX30102_DIETEMPCONFIG, &byteTemp, 1);
 
-  uint32_t startTime = millis();
-  while (millis() - startTime < 100) { 
+  uint32_t startTime = get_absolute_time();
+  while (absolute_time_diff_us(startTime, get_absolute_time()) < 100) { 
     readReg(MAX30102_DIETEMPCONFIG, &byteTemp, 1);
     if ((byteTemp & 0x01) == 0) break; 
-    delay(1);
+    sleep_ms(1);
   }
 
 
@@ -388,19 +393,15 @@ void DFRobot_MAX30102::getNewData(void)
         }
       return;
     }
-    delay(1);
+    sleep_ms(1);
   }
 }
 
 void DFRobot_MAX30102::heartrateAndOxygenSaturation(int32_t* SPO2,int8_t* SPO2Valid,int32_t* heartRate,int8_t* heartRateValid)
 {
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
-  uint16_t irBuffer[100];
-  uint16_t redBuffer[100];
-#else
   uint32_t irBuffer[100];
   uint32_t redBuffer[100];
-#endif
+
   int32_t bufferLength = 100;
 
   for (uint8_t i = 0 ; i < bufferLength ; ) {
