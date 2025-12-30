@@ -231,12 +231,17 @@ public:
   DFRobot_MAX30102(void);
 
   /*!
+   *@brief Setup I2C on board side
+   */
+  void init(void);
+
+  /*!
    *@brief Init sensor 
    *@param pWire IIC bus pointer object and construction device, can both pass or not pass parameters (Wire in default)
    *@param i2cAddr Chip IIC address (0x57 in default)
    *@return true or false
    */
-  bool begin(TwoWire *pWire = &Wire, uint8_t i2cAddr = MAX30102_IIC_ADDRESS);
+  bool begin(uint8_t i2cAddr = MAX30102_IIC_ADDRESS);
 
   /*!
    *@brief Use macro definition to configure sensor 
@@ -444,10 +449,13 @@ private:
   uint8_t readReg(uint8_t reg, const void* pBuf, uint8_t size);
 
 private:
-  TwoWire *_pWire;
   uint8_t _i2cAddr;
   uint8_t _activeLEDs;
   sSenseBuf_t senseBuf;//Buffer for storing multiple groups of array
 };
+
+void beginTransmission(uint8_t i2cAddr);
+size_t write(const uint8_t *data, size_t quantity);
+uint8_t twi_transmit(const uint8_t* data, uint8_t length);
 
 #endif

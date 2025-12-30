@@ -16,21 +16,64 @@
  #include <hardware/i2c.h>
  #include "pico/stdlib.h"
  #include <cstring>
+ #include <iostream>
+
+ #define I2C_PORT i2c0
+ #define SDA_PIN 4
+ #define SCL_PIN 5
+
+ #define BUFFER_LENGTH 32
+
+ /*Class variables required by TwoWire*/
+  uint8_t i2cAddr = MAX30102_IIC_ADDRESS;
+
+  uint8_t rxBuffer[BUFFER_LENGTH];
+  uint8_t rxBufferIndex = 0;
+  uint8_t rxBufferLength = 0;
+
+  uint8_t txAddress = 0;
+  uint8_t txBuffer[BUFFER_LENGTH];
+  uint8_t txBufferIndex = 0;
+  uint8_t txBufferLength = 0;
+
+  uint8_t transmitting = 0;
 
 DFRobot_MAX30102::DFRobot_MAX30102(void)
 {
 
 }
 
-bool DFRobot_MAX30102::begin(TwoWire *pWire, uint8_t i2cAddr)
+void DFRobot_MAX30102::init()
 {
-  _i2cAddr = i2cAddr;
-  _pWire = pWire;
-  _pWire->begin();
-  if (getPartID() != MAX30102_EXPECTED_PARTID) {
-    DBG("not expected partid");
+  i2c_init(I2C_PORT, 400000);
+  gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);  //SDA
+  gpio_set_function(SCL_PIN, GPIO_FUNC_I2C);  //SCL
+  gpio_pull_up(SDA_PIN);
+  gpio_pull_up(SCL_PIN);
+}
+
+bool DFRobot_MAX30102::begin(uint8_t i2cAddr)
+{
+  rxBufferIndex = 0;
+  rxBufferLength = 0;
+
+  txBufferIndex = 0;
+  txBufferLength = 0;
+  
+  sleep_ms(1000); // Give the peripheral time to boot
+  uint8_t reg = MAX30102_PARTID;
+  uint8_t partID[1];
+
+  i2c_write_blocking(I2C_PORT, i2cAddr, &reg, 1, true);
+  i2c_read_blocking(I2C_PORT, i2cAddr, partID, 1, false);
+
+  if(partID[0] != 0xFF)
+  {
+    sleep_ms(5000);
+    printf("[Error] HR sensor PartID doesn't match!");
     return false;
   }
+
   softReset();
   return true;
 }
@@ -429,6 +472,7 @@ void DFRobot_MAX30102::heartrateAndOxygenSaturation(int32_t* SPO2,int8_t* SPO2Va
 
 void DFRobot_MAX30102::writeReg(uint8_t reg, const void* pBuf, uint8_t size)
 {
+  /*
   if(pBuf == NULL) {
     DBG("pBuf ERROR!! : null pointer");
   }
@@ -440,6 +484,7 @@ void DFRobot_MAX30102::writeReg(uint8_t reg, const void* pBuf, uint8_t size)
     _pWire->write(_pBuf[i]);
   }
   _pWire->endTransmission();
+  */
 }
 
 uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
@@ -447,9 +492,12 @@ uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
   if(pBuf == NULL) {
     DBG("pBuf ERROR!! : null pointer");
   }
+
   uint8_t * _pBuf = (uint8_t *)pBuf;
-  _pWire->beginTransmission(_i2cAddr);
-  _pWire->write(&reg, 1);
+  beginTransmission(i2cAddr); // Just for the internal state machine implementation
+  write(&reg, 1);
+
+  /*
 
   if( _pWire->endTransmission() != 0) {
     return 0;
@@ -460,4 +508,81 @@ uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
     _pBuf[i] = _pWire->read();
   }
   return size;
+  */
+}
+
+void beginTransmission(uint8_t i2cAddr)
+{
+  // indicate that we are transmitting
+  transmitting = 1;
+  // set address of targeted slave
+  txAddress = i2cAddr;
+  // reset tx buffer iterator vars
+  txBufferIndex = 0;
+  txBufferLength = 0;
+}
+
+size_t write(const uint8_t *data, size_t quantity)
+{
+  size_t tmp_quantity = quantity;
+  
+  if(transmitting)
+  {
+  // in master transmitter mode
+    for(size_t i = 0; i < quantity; ++i)
+    {
+      write(data[i]);
+    }
+  }
+  else
+  {
+  // in slave send mode
+    // reply to master
+    twi_transmit(data, quantity);
+  
+  }
+  return quantity;
+}
+
+size_t write(uint8_t data)  // writing once
+{
+  if(transmitting){
+  // in master transmitter mode
+    // don't bother if buffer is full
+    if(txBufferLength >= BUFFER_LENGTH){
+      printf("[Warning] Write operation failed due full buffer!");  //setWriteError();
+      return 0;
+    }
+    // put byte in tx buffer
+    txBuffer[txBufferIndex] = data;
+    ++txBufferIndex;
+    // update amount in buffer   
+    txBufferLength = txBufferIndex;
+  }else{
+  // in slave send mode
+    // reply to master
+    twi_transmit(&data, 1);
+    
+  }
+  return 1;
+}
+
+uint8_t twi_transmit(const uint8_t* data, uint8_t length)
+{
+  uint8_t i;
+
+    // ensure data will fit into buffer
+    if(txBufferLength < length){
+      return 1;
+    }
+    
+    // no need to ensure we are currently a slave transmitter?
+
+    // set length and copy data into tx buffer
+    txBufferLength = length;
+    for(i = 0; i < length; ++i){
+      txBuffer[i] = data[i];
+    }
+  
+  return 0;
 }
