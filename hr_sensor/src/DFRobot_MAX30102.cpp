@@ -25,6 +25,8 @@
 
  #define BUFFER_LENGTH 32
 
+ #define NOODS_PIN 14
+
  /*Class variables required by TwoWire*/
   uint8_t i2cAddr = MAX30102_IIC_ADDRESS;
 
@@ -38,6 +40,16 @@
   uint8_t txBufferLength = 0;
 
   uint8_t transmitting = 0;
+
+int test_blink()
+{
+    gpio_put(NOODS_PIN, 1);
+    sleep_ms(1000);
+    gpio_put(NOODS_PIN, 0);
+    sleep_ms(1000);
+
+    return 0;
+}
 
 DFRobot_MAX30102::DFRobot_MAX30102(void)
 {
@@ -62,16 +74,16 @@ bool DFRobot_MAX30102::begin(uint8_t i2cAddr)
   txBufferLength = 0;
   
   sleep_ms(1000); // Give the peripheral time to boot
-  uint8_t reg = MAX30102_PARTID;
+  uint8_t reg[2] = {MAX30102_PARTID, 0x01};
   uint8_t partID[1];
 
-  i2c_write_blocking(I2C_PORT, i2cAddr, &reg, 1, true);
+  i2c_write_blocking(I2C_PORT, i2cAddr, reg, 1, true);
   i2c_read_blocking(I2C_PORT, i2cAddr, partID, 1, false);
 
-  if(partID[0] != 0xFF)
+  if(partID[0] != 0x15)
   {
-    sleep_ms(5000);
     printf("[Error] HR sensor PartID doesn't match!");
+    //test_blink();
     return false;
   }
 

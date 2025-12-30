@@ -59,12 +59,7 @@
 #define MAX30102_EXPECTED_PARTID  0x15
 
 //Circular buffer for storing sensor readings, cannot be smaller than 2 
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
-#define MAX30102_SENSE_BUF_SIZE  2
-#else
 #define MAX30102_SENSE_BUF_SIZE  30
-#endif
-
 
 class DFRobot_MAX30102
 {
