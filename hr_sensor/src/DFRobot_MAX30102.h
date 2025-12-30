@@ -455,7 +455,13 @@ private:
 };
 
 void beginTransmission(uint8_t i2cAddr);
+void beginTransmission(int address);
 size_t write(const uint8_t *data, size_t quantity);
 uint8_t twi_transmit(const uint8_t* data, uint8_t length);
+uint8_t endTransmission(uint8_t sendStop);
+uint8_t endTransmission(void);
+uint8_t requestFrom(uint8_t address, uint8_t quantity, uint8_t sendStop);
+uint8_t requestFrom(uint8_t address, uint8_t quantity);
+int read(void);
 
 #endif

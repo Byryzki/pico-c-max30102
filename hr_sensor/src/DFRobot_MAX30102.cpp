@@ -472,19 +472,17 @@ void DFRobot_MAX30102::heartrateAndOxygenSaturation(int32_t* SPO2,int8_t* SPO2Va
 
 void DFRobot_MAX30102::writeReg(uint8_t reg, const void* pBuf, uint8_t size)
 {
-  /*
   if(pBuf == NULL) {
     DBG("pBuf ERROR!! : null pointer");
   }
   uint8_t * _pBuf = (uint8_t *)pBuf;
-  _pWire->beginTransmission(_i2cAddr);
-  _pWire->write(&reg, 1);
+  beginTransmission(_i2cAddr);
+  write(&reg, 1);
 
   for(uint16_t i = 0; i < size; i++) {
-    _pWire->write(_pBuf[i]);
+    write(_pBuf[i]);
   }
-  _pWire->endTransmission();
-  */
+  endTransmission();
 }
 
 uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
@@ -497,18 +495,16 @@ uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
   beginTransmission(i2cAddr); // Just for the internal state machine implementation
   write(&reg, 1);
 
-  /*
-
-  if( _pWire->endTransmission() != 0) {
+  if( endTransmission() != 0) {
     return 0;
   }
-
-  _pWire->requestFrom(_i2cAddr,  size);
+  
+  requestFrom(i2cAddr,  size);
   for(uint16_t i = 0; i < size; i++) {
-    _pBuf[i] = _pWire->read();
+    _pBuf[i] = read();
   }
   return size;
-  */
+  
 }
 
 void beginTransmission(uint8_t i2cAddr)
@@ -520,6 +516,11 @@ void beginTransmission(uint8_t i2cAddr)
   // reset tx buffer iterator vars
   txBufferIndex = 0;
   txBufferLength = 0;
+}
+
+void beginTransmission(int address)
+{
+  beginTransmission((uint8_t)address);
 }
 
 size_t write(const uint8_t *data, size_t quantity)
@@ -585,4 +586,63 @@ uint8_t twi_transmit(const uint8_t* data, uint8_t length)
     }
   
   return 0;
+}
+
+uint8_t endTransmission(uint8_t sendStop)
+{
+  // transmit buffer (blocking)
+  int8_t ret = i2c_write_blocking(I2C_PORT, txAddress, txBuffer, txBufferLength, sendStop);
+  // reset tx buffer iterator vars
+  txBufferIndex = 0;
+  txBufferLength = 0;
+  // indicate that we are done transmitting
+  transmitting = 0;
+  return ret;
+}
+
+//	This provides backwards compatibility with the original
+//	definition, and expected behaviour, of endTransmission
+//
+uint8_t endTransmission(void)
+{
+  return endTransmission(true);
+}
+// must be called in:
+// slave tx event callback
+// or after beginTransmission(address)
+
+uint8_t requestFrom(uint8_t address, uint8_t quantity, uint8_t sendStop)
+{
+  // clamp to buffer length
+  if(quantity > BUFFER_LENGTH){
+    quantity = BUFFER_LENGTH;
+  }
+  // perform blocking read into buffer
+  uint8_t read = i2c_read_blocking(I2C_PORT, i2cAddr, rxBuffer, quantity, sendStop);
+  // set rx buffer iterator vars
+  rxBufferIndex = 0;
+  rxBufferLength = read;
+
+  return read;
+}
+
+uint8_t requestFrom(uint8_t address, uint8_t quantity)
+{
+  return requestFrom((uint8_t)address, (uint8_t)quantity, (uint8_t)true);
+}
+
+// must be called in:
+// slave rx event callback
+// or after requestFrom(address, numBytes)
+int read(void)
+{
+  int value = -1;
+  
+  // get each successive byte on each call
+  if(rxBufferIndex < rxBufferLength){
+    value = rxBuffer[rxBufferIndex];
+    ++rxBufferIndex;
+  }
+
+  return value;
 }
