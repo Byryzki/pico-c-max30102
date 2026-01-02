@@ -73,20 +73,24 @@ bool DFRobot_MAX30102::begin(uint8_t i2cAddr)
   txBufferIndex = 0;
   txBufferLength = 0;
   
+  
   sleep_ms(1000); // Give the peripheral time to boot
-  uint8_t reg[2] = {MAX30102_PARTID, 0x01};
-  uint8_t partID[1];
+  //wakeUp();
 
-  i2c_write_blocking(I2C_PORT, i2cAddr, reg, 1, true);
-  i2c_read_blocking(I2C_PORT, i2cAddr, partID, 1, false);
+  uint8_t ret = 0;
+  uint8_t ID[1];
 
-  if(partID[0] != 0x15)
+  ret = readReg(MAX30102_PARTID, ID, 1);
+
+  if(ID[0] != MAX30102_EXPECTED_PARTID)
   {
-    printf("[Error] HR sensor PartID doesn't match!");
-    //test_blink();
+    sleep_ms(2000);
+    printf("[Error] HR sensor not found!\n");
+    printf("PartID: %02x\n", ID);
+    while(true){}
     return false;
   }
-
+  
   softReset();
   return true;
 }
@@ -354,7 +358,6 @@ void DFRobot_MAX30102::sensorConfiguration(uint8_t ledBrightness, uint8_t sample
 
   setFIFOAverage(sampleAverage);
 
-
   setADCRange(adcRange);
 
   setSampleRate(sampleRate);
@@ -378,6 +381,9 @@ void DFRobot_MAX30102::sensorConfiguration(uint8_t ledBrightness, uint8_t sample
 
   enableFIFORollover(); 
   resetFIFO(); 
+
+  printf("configuration ok?\n");
+  sleep_ms(10000);
 }
 
 
@@ -403,7 +409,7 @@ void DFRobot_MAX30102::getNewData(void)
     writePointer = getWritePointer();
 
     if (readPointer == writePointer) {
-      DBG("no data");
+      printf("no data\n");
     } else {
       numberOfSamples = writePointer - readPointer;
       if (numberOfSamples < 0) numberOfSamples += 32;
@@ -483,6 +489,7 @@ void DFRobot_MAX30102::heartrateAndOxygenSaturation(int32_t* SPO2,int8_t* SPO2Va
       /**pn_spo2=*/SPO2, /**pch_spo2_valid=*/SPO2Valid, /**pn_heart_rate=*/heartRate, /**pch_hr_valid=*/heartRateValid);
 }
 
+/*
 void beginTransmission(uint8_t i2cAddr)
 {
   // indicate that we are transmitting
@@ -568,6 +575,8 @@ uint8_t endTransmission(uint8_t sendStop)
 {
   // transmit buffer (blocking)
   int8_t ret = i2c_write_blocking(I2C_PORT, txAddress, txBuffer, txBufferLength, sendStop);
+  printf("Number of bits written in %02x is %d\n", &txBuffer, ret);
+  
   // reset tx buffer iterator vars
   txBufferIndex = 0;
   txBufferLength = 0;
@@ -656,6 +665,34 @@ uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
   for(uint16_t i = 0; i < size; i++) {
     _pBuf[i] = read();
   }
+  return size;
+  
+}
+*/
+
+void DFRobot_MAX30102::writeReg(uint8_t reg, const void* pBuf, uint8_t size)
+{
+  if(pBuf == NULL)
+  {
+    DBG("pBuf ERROR!! : null pointer");
+  }
+  uint8_t * _pBuf = (uint8_t *)pBuf;
+  i2c_write_blocking(I2C_PORT, i2cAddr, _pBuf, size, false);
+}
+
+uint8_t DFRobot_MAX30102::readReg(uint8_t reg, const void* pBuf, uint8_t size)
+{
+  if(pBuf == NULL)
+  {
+    DBG("pBuf ERROR!! : null pointer");
+  }
+
+  i2c_write_blocking(I2C_PORT, i2cAddr, &reg, 1, true); // Set the internal reg pointer
+
+  uint8_t * _pBuf = (uint8_t *)pBuf;
+  i2c_read_blocking(I2C_PORT, i2cAddr, _pBuf, size, true);
+  printf("Reading from %02x is %u\n", &_pBuf, _pBuf);
+
   return size;
   
 }

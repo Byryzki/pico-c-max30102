@@ -47,7 +47,7 @@ int blink_nood()
 
 int main()
 {
-  stdio_init_all;
+  stdio_init_all();
 
   nood_init();
   blink_nood(); //#1 debug tool
@@ -56,7 +56,7 @@ int main()
   blink_nood();
 
   while (!particleSensor.begin()) {
-    printf("MAX30102 was not found");
+    printf("MAX30102 was not found\n");
     sleep_ms(1000);
   }
 
@@ -72,7 +72,6 @@ int main()
    *@param adcRange Measurement Range, default 4096 (nA), 15.63(pA) per LSB
    */
 
-  blink_nood();
   particleSensor.sensorConfiguration(/*ledBrightness=*/0x1F, /*sampleAverage=*/SAMPLEAVG_4, \
                                   /*ledMode=*/MODE_MULTILED, /*sampleRate=*/SAMPLERATE_400, \
                                   /*pulseWidth=*/PULSEWIDTH_411, /*adcRange=*/ADCRANGE_4096);
